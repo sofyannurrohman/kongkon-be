@@ -4,10 +4,17 @@ import {
   FindNearbyDriversDto,
   NearbyDriverResponseDto,
 } from './dto/find-nearby-drivers.dto';
+import { NotificationService } from 'src/notification/notification.service';
+import { OrderService } from 'src/order/order.service';
+import { DriverStatusDto } from './dto/driver_status.dto';
 
 @Controller('partner')
 export class PartnerController {
-  constructor(private readonly partnerService: PartnerService) {}
+  constructor(
+    private readonly notificationService: NotificationService,
+    private readonly orderService: OrderService,
+    private readonly partnerService: PartnerService,
+  ) {}
   // Endpoint for posting the driver's location
   @Post('location/:driverId')
   async postLocation(
@@ -45,6 +52,35 @@ export class PartnerController {
       findNearbyDriversDto.radiusInMeters,
     );
     return driverIds.map((id) => ({ id })); // Map to DTO
+  }
+
+  @Post(':id/rematch')
+  async rematchDriver(@Param('id') orderId: number) {
+    return this.partnerService.handleRematch(orderId);
+  }
+
+  @Post('update-status')
+  async updateDriverStatus(@Body() driverStatusDto: DriverStatusDto) {
+    // Update order status
+    const order = await this.orderService.findOrderById(
+      driverStatusDto.orderId,
+    );
+    if (!order) {
+      return { message: 'Order not found' };
+    }
+
+    // Update order's status in the database (optional)
+    order.status = driverStatusDto.status;
+    await order.save();
+
+    // Notify customer and merchant about the driver’s status
+    await this.notificationService.sendDriverStatusUpdate(
+      order.customer_id,
+      order.merchant_id,
+      driverStatusDto,
+    );
+
+    return { message: 'Driver status updated successfully' };
   }
 
   // @Post('/accept-order')

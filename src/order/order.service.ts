@@ -1,21 +1,180 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Order } from './order.entity';
+
+import * as midtransClient from 'midtrans-client';
 import { RabbitMQProducerService } from 'src/rabbitmq/rabbitmq_producer.service';
 import { CreateOrderDto } from './dto/create_order.dto';
+import { UpdateOrderDto } from './dto/update_order.dto';
+import { ConfigService } from '@nestjs/config'; // Import ConfigService
+import { HttpService } from '@nestjs/axios';
+import { DistanceDto } from './dto/distance_estimate.dto';
+import { Transaction } from 'src/transaction/transaction.entity';
+import { UsersService } from 'src/user/user.service';
+import { WalletService } from 'src/wallet/wallet.service';
+
 @Injectable()
 export class OrderService {
+  private googleMapsApiKey: string;
+  private midtransSnap;
   constructor(
     @Inject('ORDER_REPOSITORY') private readonly orderRepository: typeof Order,
+    @Inject('TRANSACTION_REPOSITORY')
+    private transactionModel: typeof Transaction,
+    private userService: UsersService,
+    private walletService: WalletService,
     private readonly rabbitMQService: RabbitMQProducerService,
-  ) {}
+    private httpService: HttpService, // Inject HttpService
+    private configService: ConfigService, // Inject ConfigService
+  ) {
+    this.googleMapsApiKey = this.configService.get('GOOGLE_MAPS_API_KEY');
+    // Setup Midtrans client
+    this.midtransSnap = new midtransClient.Snap({
+      isProduction: false,
+      serverKey: 'SB-Mid-server-SfTZphN2_lPVv9YGOo38V9jV', // Replace with your server key from Midtrans Dashboard
+      clientKey: 'SB-Mid-client-40nK8xJmDkJQMULJ', // Replace with your client key
+    });
+  }
 
-  async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
+  async createOrder(createOrderDto: CreateOrderDto) {
     const order = await this.orderRepository.create({
       ...createOrderDto, // Set status as 'pending' when order is initially created
     });
+    const user = await this.userService.findOne(order.customer_id);
+    const transactionParams = {
+      transaction_details: {
+        order_id: order.id,
+        gross_amount: createOrderDto.total_amount,
+      },
+      credit_card: {
+        secure: true,
+      },
+      customer_details: {
+        first_name: user.name,
+        email: user.email,
+        phone: user.phone_number,
+      },
+    };
+    // Call Midtrans Snap API to create transaction token
+    const midtransResponse =
+      await this.midtransSnap.createTransaction(transactionParams);
 
-    return order;
+    // Store the transaction info in your database
+    await this.transactionModel.create({
+      order_id: order.id,
+      user_id: order.customer_id,
+      code: midtransResponse.token,
+      status: 'pending',
+      amount: createOrderDto.total_amount,
+    });
+
+    return {
+      order,
+      paymentUrl: midtransResponse.redirect_url, // URL to redirect customer to Midtrans payment page
+    };
   }
+
+  // Haversine distance function to calculate distance between two coordinates
+  calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const R = 6371; // Radius of Earth in km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const lat1Rad = toRad(lat1);
+    const lat2Rad = toRad(lat2);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) *
+        Math.sin(dLon / 2) *
+        Math.cos(lat1Rad) *
+        Math.cos(lat2Rad);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return Math.round(R * c); // Distance in kilometers
+  }
+
+  async estimateCost(data: DistanceDto): Promise<number> {
+    const distance = this.calculateDistance(
+      data.from_lat,
+      data.from_lng,
+      data.to_lat,
+      data.to_lng,
+    );
+    console.log(distance);
+    // Define your cost logic here
+    const baseFare = 2000; // Base fare
+    const costPerKm = 5000; // Cost per kilometer
+    const totalCost = baseFare + distance * costPerKm;
+
+    return Math.round(totalCost);
+  }
+
+  // async calculateCostAndUpdateOrder(
+  //   orderId: number,
+  //   fromLocation: Point, // Merchant's location
+  //   toLocation: Point, // Customer's location
+  // ): Promise<Order> {
+  //   const distance = await this.calculateDistance(fromLocation, toLocation);
+  //   const deliveryCost = this.calculateDeliveryCost(distance);
+  //   const { merchantProfit, driverCommission } =
+  //     this.calculateProfitAndCommission(deliveryCost);
+
+  //   const updateOrderDto: UpdateOrderDto = {
+  //     status: 'estimated',
+  //     total_amount: deliveryCost,
+  //     merchant_profit: merchantProfit,
+  //     partner_profit: driverCommission,
+  //   };
+
+  //   return await this.updateOrder(orderId, updateOrderDto);
+  // }
+
+  // async calculateDistance(
+  //   fromLocation: Point,
+  //   toLocation: Point,
+  // ): Promise<number> {
+  //   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${fromLocation.coordinates[1]},${fromLocation.coordinates[0]}&destinations=${toLocation.coordinates[1]},${toLocation.coordinates[0]}&key=${this.googleMapsApiKey}`;
+
+  //   const response = await this.httpService.get(url).toPromise();
+  //   const data = response.data;
+
+  //   if (data.status !== 'OK' || !data.rows || data.rows.length === 0) {
+  //     throw new BadRequestException('Error calculating distance');
+  //   }
+
+  //   const distanceInMeters = data.rows[0].elements[0].distance.value; // Distance in meters
+  //   return distanceInMeters / 1000; // Convert to kilometers
+  // }
+
+  // calculateDeliveryCost(distance: number): number {
+  //   const basePrice = 50; // Base price for delivery
+  //   const pricePerKm = 10; // Cost per kilometer
+  //   return basePrice + distance * pricePerKm;
+  // }
+
+  // calculateProfitAndCommission(deliveryCost: number): {
+  //   merchantProfit: number;
+  //   driverCommission: number;
+  // } {
+  //   const driverCommissionPercentage = 0.2;
+  //   const merchantProfitPercentage = 0.8;
+
+  //   const driverCommission = deliveryCost * driverCommissionPercentage;
+  //   const merchantProfit = deliveryCost * merchantProfitPercentage;
+
+  //   return { merchantProfit, driverCommission };
+  // }
 
   async markTransactionAsPaid(orderId: number, transactionId: string) {
     // 1. Update order status to "paid" (business logic here)
@@ -38,23 +197,22 @@ export class OrderService {
     await this.rabbitMQService.publishTransactionPaidEvent(eventPayload);
   }
 
-  // async processPayment(orderId: string, paymentInfo: any): Promise<void> {
-  //   // Process payment using the transaction service
-  //   const paymentResult =
-  //     await this.transactionService.processPayment(paymentInfo);
-
-  //   if (paymentResult.success) {
-  //     // Update the order status to 'paid'
-  //     await this.updateOrderStatus(orderId, 'paid');
-
-  //     // Trigger the driver matching event after payment
-  //     const order = await this.orderRepository.findByPk(orderId);
-  //     await this.triggerDriverMatch(order);
-  //   }
-  // }
-
   async findOrderById(orderId: number): Promise<Order> {
     return this.orderRepository.findByPk(orderId);
+  }
+  async updateOrder(
+    id: number,
+    updateOrderDto: UpdateOrderDto,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findByPk(id);
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    // Update the order with the provided DTO
+    await order.update(updateOrderDto);
+
+    return order;
   }
 
   async updateOrderStatus(orderId: number, status: string): Promise<void> {
@@ -86,6 +244,58 @@ export class OrderService {
     );
 
     console.log('Driver match event published:', driverMatchPayload);
+  }
+
+  async completeOrder(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findByPk(orderId);
+
+    if (!order) {
+      throw new HttpException(
+        `Order with ID ${orderId} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    // Mark order as complete in the database
+    order.status = 'completed';
+    const updatedOrder = await order.save();
+
+    // Publish the order complete event
+    const completeOrderPayload = { orderId: order.id };
+    await this.rabbitMQService.publish(
+      'order-events-exchange',
+      'order.complete',
+      completeOrderPayload,
+    );
+
+    console.log('Order complete event published:', completeOrderPayload);
+    return updatedOrder;
+  }
+
+  async cancelOrder(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findByPk(orderId);
+
+    if (!order) {
+      throw new Error(`Order with ID ${orderId} not found`);
+    }
+    if (order.status != 'paid' || 'canceled') {
+      throw new Error(
+        `Order ${orderId} cant be canceled because order status is ${order.status}`,
+      );
+    }
+
+    // Update order status to 'canceled'
+    order.status = 'canceled';
+    await order.save();
+
+    // Refund the total amount to the user's wallet
+    const customer = await this.userService.findOne(order.customer_id);
+    if (!customer) {
+      throw new Error(`Customer not found for ID: ${order.customer_id}`);
+    }
+
+    await this.walletService.addBalance(customer.id, order.total_amount);
+
+    return order;
   }
 
   // async matchDriver(merchantId: string, radiusInMeters: number): Promise<any> {

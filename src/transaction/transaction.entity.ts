@@ -24,7 +24,7 @@ export class Transaction extends Model {
 
   @Column
   @ForeignKey(() => Order)
-  order_id: string;
+  order_id: number;
 
   @Column
   @ForeignKey(() => User)

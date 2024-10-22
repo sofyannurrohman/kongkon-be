@@ -15,4 +15,26 @@ export class WalletService {
     });
     return newWallet;
   }
+  async findWalletByUserId(userId: string): Promise<Wallet> {
+    return this.walletRepository.findOne({ where: { user_id: userId } });
+  }
+
+  async addBalance(userId: string, amount: number): Promise<void> {
+    const wallet = await this.findWalletByUserId(userId);
+    if (!wallet) {
+      throw new Error(`Wallet not found for user ID: ${userId}`);
+    }
+
+    wallet.saldo += amount;
+    await wallet.save();
+  }
+  async useBalance(userId: string, amount: number): Promise<void> {
+    const wallet = await this.findWalletByUserId(userId);
+    if (!wallet) {
+      throw new Error(`Wallet not found for user ID: ${userId}`);
+    }
+
+    wallet.saldo -= amount;
+    await wallet.save();
+  }
 }

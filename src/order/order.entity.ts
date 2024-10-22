@@ -49,6 +49,15 @@ export class Order extends Model {
   @Column
   work_date: string;
 
+  @Column
+  merchant_profit: number;
+
+  @Column
+  partner_profit: number;
+
+  @Column
+  cart_id: number;
+
   @HasOne(() => Transaction, {
     onDelete: 'CASCADE', // When Merchant is deleted, associated Items will be deleted
     hooks: true, // This ensures Sequelize triggers cascading hooks

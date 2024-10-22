@@ -1,8 +1,18 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { User } from './user.entity';
 import { UpdateUserRequest, CreateCustomerDto } from './dto/user.dto';
 import * as bcrypt from 'bcrypt';
 import { WalletService } from 'src/wallet/wallet.service';
+import { join } from 'path';
+import { writeFile } from 'fs/promises';
+import { v4 as uuidv4 } from 'uuid';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -60,5 +70,27 @@ export class UsersService {
     }
     await user.update(request); // Update the user with new data
     return user;
+  }
+  async uploadAvatar(userId: number, file: Express.Multer.File): Promise<User> {
+    const user = await this.userRepository.findByPk(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const avatarFileName = `${uuidv4()}-${file.originalname}`;
+    const filePath = join(__dirname, '../../uploads/avatars', avatarFileName);
+
+    try {
+      // Save the file to the filesystem
+      await writeFile(filePath, file.buffer);
+
+      // Update the user with the avatar filename
+      user.avatar_file_name = avatarFileName;
+      await user.save();
+
+      return user;
+    } catch (error) {
+      throw new BadRequestException('Error uploading avatar');
+    }
   }
 }

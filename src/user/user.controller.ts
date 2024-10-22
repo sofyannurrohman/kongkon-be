@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,12 +10,15 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserResponse } from 'src/model/user.model';
 import { WebResponse } from 'src/model/web.model';
 import { UsersService } from './user.service';
 import { UpdateUserRequest, CreateCustomerDto } from './dto/user.dto';
 import { User } from './user.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('/users')
 export class UsersController {
@@ -58,12 +62,13 @@ export class UsersController {
 
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<{ message: string }> {
+    const user = await this.userService.findOne(id);
     const deleted = await this.userService.delete(id);
     if (!deleted) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('User  not found', HttpStatus.NOT_FOUND);
     }
 
-    return { message: 'User successfully deleted' };
+    return { message: `User ${user.name} successfully deleted` };
   }
 
   @Put(':id')
@@ -78,5 +83,17 @@ export class UsersController {
     }
 
     return { message: 'User updated successfully', user };
+  }
+
+  @Post(':id/upload-avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(
+    @Param('id') userId: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.userService.uploadAvatar(userId, file);
   }
 }

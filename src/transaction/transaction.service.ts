@@ -1,13 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OrderService } from 'src/order/order.service';
 import { RabbitMQProducerService } from 'src/rabbitmq/rabbitmq_producer.service';
+import { Transaction } from './transaction.entity';
 
 @Injectable()
 export class TransactionService {
   constructor(
+    @Inject('TRANSACTION_REPOSITORY')
+    private readonly transactionRepository: typeof Transaction,
     private readonly rabbitMQService: RabbitMQProducerService,
     private readonly orderService: OrderService,
   ) {}
+  async handleMidtransNotification(notification: any) {
+    const { order_id, transaction_status } = notification;
+    console.log(notification);
+
+    // Fetch the corresponding transaction from your database using order_id
+    const transaction = await this.transactionRepository.findOne({
+      where: { order_id: order_id },
+    });
+
+    if (!transaction) {
+      throw new Error(
+        `Transaction not found for order ID: ${transaction.order_id}`,
+      );
+    }
+
+    // Handle different transaction statuses
+    if (transaction_status === 'capture') {
+      transaction.status = 'paid';
+    } else if (transaction_status === 'settlement') {
+      transaction.status = 'settled';
+    } else if (transaction_status === 'pending') {
+      transaction.status = 'pending';
+    } else if (
+      transaction_status === 'deny' ||
+      transaction_status === 'cancel'
+    ) {
+      transaction.status = 'failed';
+    } else if (transaction_status === 'expire') {
+      transaction.status = 'expired';
+    }
+
+    await transaction.save();
+
+    const order = await this.orderService.findOrderById(transaction.order_id);
+    if (order) {
+      order.status = transaction.status;
+      await order.save();
+    }
+  }
   async processPayment(orderId: number, amount: number): Promise<void> {
     // Payment processing logic here (e.g., communicating with a payment gateway)
     // Let's assume that the payment is successful for now.
@@ -37,5 +79,12 @@ export class TransactionService {
       console.error(`Error processing payment for order ID: ${orderId}`, error);
       throw new Error('Error processing payment.');
     }
+  }
+
+  async findTransactionByOrderID(orderID: number): Promise<Transaction> {
+    const transaction = await this.transactionRepository.findOne({
+      where: { order_id: orderID },
+    });
+    return transaction;
   }
 }

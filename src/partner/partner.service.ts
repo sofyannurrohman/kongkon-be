@@ -5,6 +5,8 @@ import { MerchantService } from 'src/merchant/merchant.service';
 import { QueryTypes } from 'sequelize';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { RabbitMQProducerService } from 'src/rabbitmq/rabbitmq_producer.service';
+import { NotificationGateway } from 'src/notification/notification.gateway';
+import { OrderService } from 'src/order/order.service';
 @Injectable()
 export class PartnerService {
   constructor(
@@ -12,6 +14,8 @@ export class PartnerService {
     @Inject('SEQUELIZE') private readonly sequelize: Sequelize,
     private merchantService: MerchantService,
     private rabbitMQService: RabbitMQProducerService, // Ensure correct injection
+    private notificationGateway: NotificationGateway,
+    private orderService: OrderService,
   ) {}
 
   async postLocation(driverId: string, latitude: number, longitude: number) {
@@ -118,42 +122,163 @@ export class PartnerService {
     queue: 'driver-matching-queue',
   })
   async handleDriverMatchEvent(msg: any) {
-    console.log('Received driver match event:', msg);
-
     const { orderId, merchantId, location } = msg;
+    console.log(`Handling driver match event for order: ${orderId}`);
+
     try {
-      // Find nearby drivers
-      const matchedDrivers = await this.findNearbyDrivers(
-        merchantId,
-        2000, // Example radius in meters
-      );
+      // Step 1: Find nearby drivers (you will need to implement your logic)
+      const matchedDrivers = await this.findNearbyDrivers(merchantId, 2000);
       if (!matchedDrivers || matchedDrivers.length === 0) {
         console.log(`No nearby drivers found for order ID: ${orderId}`);
-        return; // Exit if no drivers are found
+        return;
       }
-      if (matchedDrivers && matchedDrivers.length > 0) {
-        console.log(`Matched drivers:`, matchedDrivers);
 
-        // Publish the "order.matched" event to RabbitMQ for notification service to handle
-        const orderMatchedPayload = {
-          orderId, // Pass the order ID
-          driverId: matchedDrivers[0], // Pass the matched driver ID
-        };
-
-        await this.rabbitMQService.publish(
-          'order-matched-exchange', // Exchange name
-          'order.matched', // Routing key for the matched event
-          orderMatchedPayload, // The message payload
+      // Step 2: Notify each driver and handle their response
+      while (matchedDrivers.length > 0) {
+        const driverId = matchedDrivers.shift(); // Get the next available driver
+        console.log(
+          `Attempting to notify driver: ${driverId} for order: ${orderId}`,
         );
-        console.log('Order matched event published:', orderMatchedPayload);
-      } else {
-        console.log(`No nearby drivers found for order ID: ${orderId}`);
+
+        try {
+          // Step 3: Notify the driver and wait for their response
+          const response = await this.notificationGateway.notifyAssignedDriver(
+            driverId,
+            orderId,
+          );
+
+          console.log(
+            `Driver ${driverId} response for order ${orderId}: ${response}`,
+          );
+
+          if (response === 'accepted') {
+            // If the driver accepted, publish to RabbitMQ
+            const orderMatchedPayload = { orderId, driverId };
+            console.log(
+              `Publishing order match to RabbitMQ:`,
+              orderMatchedPayload,
+            );
+
+            await this.rabbitMQService.publish(
+              'order-matched-exchange', // Exchange name
+              'order.matched', // Routing key for matched event
+              orderMatchedPayload,
+            );
+
+            console.log(
+              `Order ${orderId} matched successfully with driver ${driverId}`,
+            );
+            break; // Exit the loop since the order is matched
+          } else {
+            console.log(`Driver ${driverId} declined the order ${orderId}`);
+          }
+        } catch (error) {
+          if (error === 'timeout') {
+            console.log(
+              `Driver ${driverId} did not respond in time for order ${orderId}`,
+            );
+          } else {
+            console.error(
+              `Error notifying driver ${driverId} for order ${orderId}:`,
+              error,
+            );
+          }
+        }
       }
     } catch (error) {
       console.error(
-        `Error while matching driver for order ID: ${orderId}`,
+        `Error handling driver match event for order ID: ${orderId}`,
         error,
       );
+    }
+  }
+
+  async handleRematch(orderId: number) {
+    console.log(`Handling rematch request for order: ${orderId}`);
+
+    try {
+      const order = await this.orderService.findOrderById(orderId);
+      if (!order) {
+        console.error(`Order not found for ID: ${orderId}`);
+        return;
+      }
+
+      // Step 1: Find nearby drivers again
+      const matchedDrivers = await this.findNearbyDrivers(
+        order.merchant_id,
+        2000,
+      );
+      if (!matchedDrivers || matchedDrivers.length === 0) {
+        console.log(
+          `No drivers available for rematch for order ID: ${orderId}`,
+        );
+        // Notify the customer that no drivers were found again
+        await this.notifyCustomerNoDriver(order.customer_id, orderId);
+        return;
+      }
+
+      // Step 2: Notify and match driver (same logic as in handleDriverMatchEvent)
+      await this.notifyAndMatchDriver(matchedDrivers, String(orderId));
+    } catch (error) {
+      console.error(`Error handling rematch for order ID: ${orderId}`, error);
+    }
+  }
+  private async notifyCustomerNoDriver(customerId: string, orderId: number) {
+    const payload = {
+      orderId,
+      message: 'No driver found within the initial search.',
+      options: ['rematch', 'cancel'], // Options for the customer
+    };
+
+    // Use a notification system to inform the customer (Socket.IO, Push Notification, etc.)
+    await this.notificationGateway.notifyCustomer(customerId, payload);
+  }
+  private async notifyAndMatchDriver(
+    matchedDrivers: string[],
+    orderId: string,
+  ) {
+    while (matchedDrivers.length > 0) {
+      const driverId = matchedDrivers.shift(); // Get the next available driver
+      console.log(
+        `Attempting to notify driver: ${driverId} for order: ${orderId}`,
+      );
+
+      try {
+        // Notify the driver and wait for their response
+        const response = await this.notificationGateway.notifyAssignedDriver(
+          driverId,
+          orderId,
+        );
+
+        if (response === 'accepted') {
+          const orderMatchedPayload = { orderId, driverId };
+
+          // Publish the order match to RabbitMQ
+          await this.rabbitMQService.publish(
+            'order-matched-exchange',
+            'order.matched',
+            orderMatchedPayload,
+          );
+
+          console.log(
+            `Order ${orderId} matched successfully with driver ${driverId}`,
+          );
+          break; // Exit the loop since the order is matched
+        } else {
+          console.log(`Driver ${driverId} declined the order ${orderId}`);
+        }
+      } catch (error) {
+        if (error === 'timeout') {
+          console.log(
+            `Driver ${driverId} did not respond in time for order ${orderId}`,
+          );
+        } else {
+          console.error(
+            `Error notifying driver ${driverId} for order ${orderId}:`,
+            error,
+          );
+        }
+      }
     }
   }
 }

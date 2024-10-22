@@ -14,9 +14,10 @@ import { APP_PIPE } from '@nestjs/core';
 
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RedisModule } from './redis/redis.module';
-import { NotificationService } from './notification/notification.service';
 import { NotificationModule } from './notification/notification.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
+import { CartItemModule } from './cart_item/cart.module';
+import { CartModule } from './cart/cart.module';
 @Module({
   imports: [
     ClientsModule.register([
@@ -46,6 +47,8 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
     RedisModule,
     NotificationModule,
     RabbitmqModule,
+    CartModule,
+    CartItemModule,
   ],
   providers: [
     {

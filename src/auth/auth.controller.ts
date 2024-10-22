@@ -11,10 +11,14 @@ import {
 import { AuthService } from './auth.service';
 import { WebResponse } from 'src/model/web.model';
 import { AuthGuard } from './auth.guard';
+import { NotificationGateway } from 'src/notification/notification.gateway';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private readonly notificationGateway: NotificationGateway,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -25,6 +29,7 @@ export class AuthController {
       signInDto.email,
       signInDto.password,
     );
+    this.notificationGateway.joinGeneralRoom(result.user_id);
     return {
       status: 'success',
       code: 200,

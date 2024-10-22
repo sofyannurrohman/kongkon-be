@@ -1,4 +1,6 @@
 import { Sequelize } from 'sequelize-typescript';
+import { Cart } from 'src/cart/cart.entity';
+import { CartItem } from 'src/cart_item/cart.entity';
 import { Item } from 'src/item/item.entity';
 import { Merchant } from 'src/merchant/merchant.entity';
 import { Order } from 'src/order/order.entity';
@@ -28,6 +30,8 @@ export const databaseProviders = [
         Variant,
         Order,
         Transaction,
+        CartItem,
+        Cart,
       ]);
       await sequelize.sync();
       return sequelize;
