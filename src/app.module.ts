@@ -18,6 +18,7 @@ import { NotificationModule } from './notification/notification.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { CartItemModule } from './cart_item/cart.module';
 import { CartModule } from './cart/cart.module';
+import { RolesModule } from './roles/roles.module';
 @Module({
   imports: [
     ClientsModule.register([
@@ -49,6 +50,7 @@ import { CartModule } from './cart/cart.module';
     RabbitmqModule,
     CartModule,
     CartItemModule,
+    RolesModule,
   ],
   providers: [
     {

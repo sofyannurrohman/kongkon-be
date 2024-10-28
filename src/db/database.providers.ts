@@ -4,6 +4,7 @@ import { CartItem } from 'src/cart_item/cart.entity';
 import { Item } from 'src/item/item.entity';
 import { Merchant } from 'src/merchant/merchant.entity';
 import { Order } from 'src/order/order.entity';
+import { Role } from 'src/roles/roles.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { User } from 'src/user/user.entity';
 import { Variant } from 'src/variant/variant.entity';
@@ -32,6 +33,7 @@ export const databaseProviders = [
         Transaction,
         CartItem,
         Cart,
+        Role,
       ]);
       await sequelize.sync();
       return sequelize;
