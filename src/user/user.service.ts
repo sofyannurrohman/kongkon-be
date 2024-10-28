@@ -12,6 +12,9 @@ import { WalletService } from 'src/wallet/wallet.service';
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
+import { UserInRolesService } from 'src/user-in-roles/user-in-roles.service';
+import { RolesService } from 'src/roles/roles.service';
+import { CreateUserInRoleDto } from 'src/user-in-roles/dto/create-user-in-role.dto';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +23,8 @@ export class UsersService {
     private userRepository: typeof User,
 
     private walletService: WalletService,
+    private userInRoleService: UserInRolesService,
+    private roleService: RolesService,
   ) {}
   async register(userData: CreateCustomerDto): Promise<User> {
     const hashed_password = await bcrypt.hash(userData.password, 10);
@@ -43,6 +48,12 @@ export class UsersService {
       is_available: false,
     });
     this.walletService.create(user.id);
+    const role = await this.roleService.findByName('customer');
+    const request = new CreateUserInRoleDto();
+    request.user_id = user.id;
+    request.role_id = role.id;
+
+    this.userInRoleService.create(request);
     return user;
   }
 

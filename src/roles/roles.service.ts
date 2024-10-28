@@ -19,16 +19,21 @@ export class RolesService {
     return result;
   }
 
-  async findOne(id: number): Promise<Role> {
+  async findOne(id: string): Promise<Role> {
     const result = await this.roleRepository.findOne({ where: { id } });
     return result;
   }
 
-  async update(id: number, updateRoleDto: UpdateRoleDto) {
+  async findByName(name: string): Promise<Role> {
+    const result = await this.roleRepository.findOne({ where: { name } });
+    return result;
+  }
+
+  async update(id: string, updateRoleDto: UpdateRoleDto) {
     return `This action updates a #${id} role`;
   }
 
-  async delete(id: number): Promise<boolean> {
+  async delete(id: string): Promise<boolean> {
     const result = await this.roleRepository.destroy({ where: { id } });
     return result > 0;
   }

@@ -19,6 +19,7 @@ import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { CartItemModule } from './cart_item/cart.module';
 import { CartModule } from './cart/cart.module';
 import { RolesModule } from './roles/roles.module';
+import { UserInRolesModule } from './user-in-roles/user-in-roles.module';
 @Module({
   imports: [
     ClientsModule.register([
@@ -51,6 +52,7 @@ import { RolesModule } from './roles/roles.module';
     CartModule,
     CartItemModule,
     RolesModule,
+    UserInRolesModule,
   ],
   providers: [
     {
