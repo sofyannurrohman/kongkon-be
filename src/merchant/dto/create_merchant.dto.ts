@@ -24,6 +24,10 @@ export class CreateMerchantDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  tag?: string;
+
   @ValidateNested()
   @Type(() => PointDto)
   location: PointDto;

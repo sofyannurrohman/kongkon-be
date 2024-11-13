@@ -15,6 +15,7 @@ import { UserInRolesService } from 'src/user-in-roles/user-in-roles.service';
 import { RolesService } from 'src/roles/roles.service';
 import { UserInRolesModule } from 'src/user-in-roles/user-in-roles.module';
 import { RolesModule } from 'src/roles/roles.module';
+import { CartModule } from 'src/cart/cart.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RolesModule } from 'src/roles/roles.module';
     forwardRef(() => UsersModule),
     forwardRef(() => UserInRolesModule), // Add forwardRef here
     forwardRef(() => RolesModule),
+    forwardRef(() => CartModule),
     WalletModule,
   ],
   controllers: [TransactionController],

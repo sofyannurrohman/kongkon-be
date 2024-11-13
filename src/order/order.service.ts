@@ -17,6 +17,7 @@ import { DistanceDto } from './dto/distance_estimate.dto';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { UsersService } from 'src/user/user.service';
 import { WalletService } from 'src/wallet/wallet.service';
+import { CartService } from 'src/cart/cart.service';
 
 @Injectable()
 export class OrderService {
@@ -27,6 +28,7 @@ export class OrderService {
     @Inject('TRANSACTION_REPOSITORY')
     private transactionModel: typeof Transaction,
     private userService: UsersService,
+    private cartService: CartService,
     private walletService: WalletService,
     private readonly rabbitMQService: RabbitMQProducerService,
     private httpService: HttpService, // Inject HttpService
@@ -42,14 +44,25 @@ export class OrderService {
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
+    const partnerProfit = await this.calculateDistance(
+      createOrderDto.from_location.coordinates[1],
+      createOrderDto.from_location.coordinates[0],
+      createOrderDto.to_location.coordinates[1],
+      createOrderDto.to_location.coordinates[0],
+    );
+    const merchantProfit = 5000;
+    const userCart = await this.cartService.findByID(createOrderDto.cart_id);
     const order = await this.orderRepository.create({
-      ...createOrderDto, // Set status as 'pending' when order is initially created
+      ...createOrderDto,
+      total_amount: userCart.total_amount + partnerProfit,
+      partner_profit: partnerProfit,
+      merchant_profit: merchantProfit,
     });
     const user = await this.userService.findOne(order.customer_id);
     const transactionParams = {
       transaction_details: {
         order_id: order.id,
-        gross_amount: createOrderDto.total_amount,
+        gross_amount: order.total_amount,
       },
       credit_card: {
         secure: true,
@@ -60,26 +73,24 @@ export class OrderService {
         phone: user.phone_number,
       },
     };
-    // Call Midtrans Snap API to create transaction token
+
     const midtransResponse =
       await this.midtransSnap.createTransaction(transactionParams);
 
-    // Store the transaction info in your database
     await this.transactionModel.create({
       order_id: order.id,
       user_id: order.customer_id,
       code: midtransResponse.token,
       status: 'pending',
-      amount: createOrderDto.total_amount,
+      amount: order.total_amount,
     });
 
     return {
       order,
-      paymentUrl: midtransResponse.redirect_url, // URL to redirect customer to Midtrans payment page
+      paymentUrl: midtransResponse.redirect_url,
     };
   }
 
-  // Haversine distance function to calculate distance between two coordinates
   calculateDistance(
     lat1: number,
     lon1: number,

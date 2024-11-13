@@ -5,15 +5,36 @@ import Redis from 'ioredis';
 @Module({
   providers: [
     {
-      provide: 'REDIS_CLIENT',
+      provide: 'REDIS_PUBLISHER_CLIENT',
       useFactory: () => {
-        return new Redis({
-          host: 'localhost', // your Redis host
-          port: 6379, // your Redis port
+        const client = new Redis({
+          host: 'localhost',
+          port: 6379,
         });
+
+        client.on('error', (error) => {
+          console.error('Publisher Redis error:', error);
+        });
+
+        return client;
+      },
+    },
+    {
+      provide: 'REDIS_SUBSCRIBER_CLIENT',
+      useFactory: () => {
+        const subscriber = new Redis({
+          host: 'localhost',
+          port: 6379,
+        });
+
+        subscriber.on('error', (error) => {
+          console.error('Subscriber Redis error:', error);
+        });
+
+        return subscriber;
       },
     },
   ],
-  exports: ['REDIS_CLIENT'], // Make REDIS_CLIENT available to other modules
+  exports: ['REDIS_PUBLISHER_CLIENT', 'REDIS_SUBSCRIBER_CLIENT'],
 })
 export class RedisModule {}

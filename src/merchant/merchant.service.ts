@@ -3,6 +3,7 @@ import { Merchant } from './merchant.entity';
 import { CreateMerchantDto } from './dto/create_merchant.dto';
 import { Sequelize } from 'sequelize';
 import { UpdateMerchantDto } from './dto/update_merchant.dto';
+import { Item } from 'src/item/item.entity';
 
 @Injectable()
 export class MerchantService {
@@ -21,6 +22,7 @@ export class MerchantService {
       description: merchantData.description,
       filename: '',
       user_id: user_id,
+      tag: merchantData.tag,
       is_available: false,
       location: Sequelize.fn(
         'ST_GeomFromText',
@@ -35,6 +37,21 @@ export class MerchantService {
   }
   async findByID(id: string): Promise<Merchant> {
     const merchant = await this.merchantRepository.findByPk(id);
+    if (!merchant) {
+      throw new HttpException('Merchant not found', HttpStatus.NOT_FOUND);
+    }
+    return merchant;
+  }
+  async findByIDWithItems(id: string): Promise<Merchant> {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id },
+      include: [
+        {
+          model: Item,
+          as: 'items', // The name should match your @HasMany decorator in the Item entity
+        },
+      ],
+    });
     if (!merchant) {
       throw new HttpException('Merchant not found', HttpStatus.NOT_FOUND);
     }

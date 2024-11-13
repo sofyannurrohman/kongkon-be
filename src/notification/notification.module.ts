@@ -10,15 +10,21 @@ import { transactionsProviders } from 'src/transaction/transaction.provider';
 import { TransactionModule } from 'src/transaction/transaction.module';
 import { UsersModule } from 'src/user/user.module';
 import { WalletModule } from 'src/wallet/wallet.module';
+import { RedisModule } from 'src/redis/redis.module';
 
+import { CacheModule } from '@nestjs/cache-manager';
+import { CartModule } from 'src/cart/cart.module';
 @Module({
   imports: [
     forwardRef(() => OrderModule),
     forwardRef(() => TransactionModule),
     forwardRef(() => UsersModule),
+    forwardRef(() => CartModule),
     WalletModule,
     RabbitmqModule,
     HttpModule,
+    RedisModule,
+    CacheModule.register(),
   ],
   providers: [
     NotificationGateway,

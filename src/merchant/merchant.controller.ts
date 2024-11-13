@@ -54,6 +54,18 @@ export class MerchantController {
       data: result,
     };
   }
+  @Get(':id/with-items')
+  async getByIDWithItem(
+    @Param('id') id: string,
+  ): Promise<WebResponse<Merchant>> {
+    const result = await this.merchantService.findByIDWithItems(id);
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get merchant by id',
+      data: result,
+    };
+  }
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<{ message: string }> {
     const deleted = await this.merchantService.delete(id);

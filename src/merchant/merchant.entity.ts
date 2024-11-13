@@ -41,6 +41,9 @@ export class Merchant extends Model<Merchant> {
   @Column
   is_available: boolean;
 
+  @Column
+  tag: string;
+
   @HasMany(() => Item, {
     onDelete: 'CASCADE', // When Merchant is deleted, associated Items will be deleted
     hooks: true, // This ensures Sequelize triggers cascading hooks

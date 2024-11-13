@@ -40,6 +40,7 @@ export class Order extends Model {
 
   @Column({ type: DataType.GEOMETRY('POINT', 4326), allowNull: false })
   to_location: Point;
+
   @Column
   total_amount: number;
 

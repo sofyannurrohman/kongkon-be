@@ -1,8 +1,8 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class DriverStatusDto {
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   orderId: number;
 
   @IsNotEmpty()

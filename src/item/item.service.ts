@@ -1,15 +1,10 @@
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Item } from './item.entity';
 import { CreateItemDto } from './dto/create_item.dto';
 import { VariantService } from 'src/variant/variant.service';
 import { CreateVariantDto } from 'src/variant/dto/create_variant.dto';
 import { Sequelize } from 'sequelize-typescript'; // Needed for transaction management
+import { Variant } from 'src/variant/variant.entity';
 
 @Injectable()
 export class ItemService {
@@ -61,18 +56,26 @@ export class ItemService {
     const items = await this.itemRepository.findAll();
     return items;
   }
-  async findAllByMerchantID(merchant_id: string): Promise<Item[]> {
-    const items = await this.itemRepository.findAll({
-      where: { merchant_id: merchant_id },
-    });
-    return items;
-  }
-  async findByID(id: string): Promise<Item> {
-    const item = await this.itemRepository.findByPk(id);
-    if (!item) {
-      throw new HttpException('Item not found', HttpStatus.NOT_FOUND);
+  async findAllByMerchantID(merchant_id: string) {
+    if (!merchant_id) {
+      throw new Error('merchant_id is required.');
     }
-    return item;
+    // Proceed with the query if merchant_id is valid
+    return this.itemRepository.findAll({ where: { merchant_id } });
+  }
+  async findById(id: number) {
+    if (!id) {
+      throw new Error('id is required.');
+    }
+    return this.itemRepository.findOne({
+      where: { id },
+      include: [
+        {
+          model: Variant,
+          as: 'variants', // The name should match your @HasMany decorator in the Item entity
+        },
+      ],
+    });
   }
   async delete(id: number): Promise<boolean> {
     const result = await this.itemRepository.destroy({ where: { id } });

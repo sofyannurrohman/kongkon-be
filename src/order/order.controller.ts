@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Param,
@@ -14,6 +15,7 @@ import { CreateOrderDto } from './dto/create_order.dto';
 import { RabbitMQProducerService } from 'src/rabbitmq/rabbitmq_producer.service';
 import { DistanceDto } from './dto/distance_estimate.dto';
 import { WebResponse } from 'src/model/web.model';
+import { Order } from './order.entity';
 
 @Controller('orders')
 export class OrderController {
@@ -114,5 +116,15 @@ export class OrderController {
         message: error.message,
       });
     }
+  }
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<WebResponse<Order>> {
+    const result = await this.orderService.findOrderById(parseInt(id));
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get order by id',
+      data: result,
+    };
   }
 }

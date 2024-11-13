@@ -23,9 +23,11 @@ export class Item extends Model<Item> {
 
   @Column
   name: string;
+
   @ForeignKey(() => Merchant)
   @Column
   merchant_id: string;
+
   @Column
   rating: number;
 
@@ -45,9 +47,6 @@ export class Item extends Model<Item> {
   customize: boolean;
 
   @Column
-  variant_id: number;
-
-  @Column
   is_available: boolean;
 
   @BelongsTo(() => Merchant, {
@@ -61,3 +60,4 @@ export class Item extends Model<Item> {
   })
   variants: Variant[];
 }
+>

@@ -40,9 +40,22 @@ export class ItemController {
       data: result,
     };
   }
-  @Get()
-  async getItemByID(@Param(':id') id: string): Promise<WebResponse<Item>> {
-    const result = await this.itemService.findByID(id);
+  @Get('merchants/:merchant_id')
+  async getAllItemByMerchantID(
+    @Param('merchant_id') merchant_id: string,
+  ): Promise<WebResponse<Item[]>> {
+    const result = await this.itemService.findAllByMerchantID(merchant_id);
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get all item by Merchant',
+      data: result,
+    };
+  }
+
+  @Get(':id')
+  async getItemByID(@Param('id') id: string): Promise<WebResponse<Item>> {
+    const result = await this.itemService.findById(Number(id));
     return {
       status: 'success',
       code: 200,

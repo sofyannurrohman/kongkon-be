@@ -28,6 +28,12 @@ export class VariantService {
     });
     return variants;
   }
+  async findByID(id: number): Promise<Variant> {
+    const variant = await this.variantRepository.findOne({
+      where: { id },
+    });
+    return variant;
+  }
   async delete(id: number): Promise<boolean> {
     const result = await this.variantRepository.destroy({ where: { id } });
     return result > 0;

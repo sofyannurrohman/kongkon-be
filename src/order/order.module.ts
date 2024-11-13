@@ -12,6 +12,7 @@ import { TransactionModule } from 'src/transaction/transaction.module';
 import { transactionsProviders } from 'src/transaction/transaction.provider';
 import { UsersModule } from 'src/user/user.module';
 import { WalletModule } from 'src/wallet/wallet.module';
+import { CartModule } from 'src/cart/cart.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WalletModule } from 'src/wallet/wallet.module';
     HttpModule, // Add HttpModule for HttpService
     ConfigModule.forRoot(),
     WalletModule,
+    CartModule,
     forwardRef(() => UsersModule),
     forwardRef(() => TransactionModule),
   ],

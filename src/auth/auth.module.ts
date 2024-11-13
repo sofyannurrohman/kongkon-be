@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { usersProviders } from 'src/user/user.provider';
 import { NotificationModule } from 'src/notification/notification.module';
 import { NotificationGateway } from 'src/notification/notification.gateway';
+import { CacheModule } from '@nestjs/cache-manager';
 @Module({
   imports: [
     UsersModule,
@@ -17,6 +18,9 @@ import { NotificationGateway } from 'src/notification/notification.gateway';
       signOptions: { expiresIn: '7d' },
     }),
     NotificationModule,
+    CacheModule.register({
+      ttl: 300, // default TTL (e.g., 5 minutes)
+    }),
   ],
   controllers: [AuthController],
   providers: [AuthService, ...usersProviders, NotificationGateway],

@@ -35,11 +35,12 @@ export class CartItem extends Model {
   @ForeignKey(() => Variant)
   @Column
   variant_id: number;
+  @Column
+  customer_id: string;
 
   @BelongsTo(() => Item)
   item: Item;
 
   @BelongsTo(() => Cart)
   cart: Cart;
-
 }

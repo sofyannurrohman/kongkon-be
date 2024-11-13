@@ -25,10 +25,6 @@ export class CreateOrderDto {
   @IsNotEmpty()
   to_location: Point; // GeoJSON Point
 
-  @IsNumber()
-  @IsNotEmpty()
-  total_amount: number;
-
   @IsString()
   order_type: string;
 

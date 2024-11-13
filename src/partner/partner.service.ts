@@ -10,7 +10,7 @@ import { OrderService } from 'src/order/order.service';
 @Injectable()
 export class PartnerService {
   constructor(
-    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    @Inject('REDIS_PUBLISHER_CLIENT') private readonly redisClient: Redis,
     @Inject('SEQUELIZE') private readonly sequelize: Sequelize,
     private merchantService: MerchantService,
     private rabbitMQService: RabbitMQProducerService, // Ensure correct injection
@@ -123,17 +123,16 @@ export class PartnerService {
   })
   async handleDriverMatchEvent(msg: any) {
     const { orderId, merchantId, location } = msg;
+    const order = await this.orderService.findOrderById(orderId);
     console.log(`Handling driver match event for order: ${orderId}`);
 
     try {
-      // Step 1: Find nearby drivers (you will need to implement your logic)
       const matchedDrivers = await this.findNearbyDrivers(merchantId, 2000);
       if (!matchedDrivers || matchedDrivers.length === 0) {
         console.log(`No nearby drivers found for order ID: ${orderId}`);
         return;
       }
 
-      // Step 2: Notify each driver and handle their response
       while (matchedDrivers.length > 0) {
         const driverId = matchedDrivers.shift(); // Get the next available driver
         console.log(
@@ -177,6 +176,10 @@ export class PartnerService {
             console.log(
               `Driver ${driverId} did not respond in time for order ${orderId}`,
             );
+            await this.notificationGateway.notifyCustomer(
+              order.customer_id,
+              'Tidak ada driver di sekitar lokasi',
+            );
           } else {
             console.error(
               `Error notifying driver ${driverId} for order ${orderId}:`,
@@ -206,7 +209,7 @@ export class PartnerService {
       // Step 1: Find nearby drivers again
       const matchedDrivers = await this.findNearbyDrivers(
         order.merchant_id,
-        2000,
+        5000,
       );
       if (!matchedDrivers || matchedDrivers.length === 0) {
         console.log(

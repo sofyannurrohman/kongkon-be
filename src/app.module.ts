@@ -20,6 +20,7 @@ import { CartItemModule } from './cart_item/cart.module';
 import { CartModule } from './cart/cart.module';
 import { RolesModule } from './roles/roles.module';
 import { UserInRolesModule } from './user-in-roles/user-in-roles.module';
+import { CacheModule } from '@nestjs/cache-manager';
 @Module({
   imports: [
     ClientsModule.register([
@@ -53,6 +54,7 @@ import { UserInRolesModule } from './user-in-roles/user-in-roles.module';
     CartItemModule,
     RolesModule,
     UserInRolesModule,
+    CacheModule.register(),
   ],
   providers: [
     {
