@@ -11,6 +11,7 @@ export class CreateCustomerDto {
   readonly email: string;
   readonly password: string;
   readonly phone_number: string;
+  license_plate?: string;
 }
 
 export class UserLogin {

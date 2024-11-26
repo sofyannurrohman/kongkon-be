@@ -5,7 +5,6 @@ import { UpdateCartDto } from './dto/update_cart.dto';
 import { CartItem } from 'src/cart_item/cart.entity';
 import { Merchant } from 'src/merchant/merchant.entity';
 import { Item } from 'src/item/item.entity';
-import { where } from 'sequelize';
 import { Variant } from 'src/variant/variant.entity';
 
 @Injectable()
@@ -51,7 +50,7 @@ export class CartService {
       include: [
         {
           model: CartItem,
-          attributes: ['id', 'item_id', 'item_qty', 'variant'],
+          attributes: ['id', 'item_id', 'item_qty', 'variant_id'],
           include: [
             {
               model: Item,
@@ -61,8 +60,11 @@ export class CartService {
                   model: Merchant,
                   attributes: ['id', 'location', 'name'],
                 },
-                
               ], // Eager load merchant within item
+            },
+            {
+              model: Variant, // Include the Variant model if variant is a relationship
+              attributes: ['id', 'name', 'additional_price'], // Adjust based on the actual columns in Variant model
             },
           ],
         },
@@ -80,5 +82,14 @@ export class CartService {
     }
     await user.update(request);
     return user;
+  }
+  async findByUserID(userId: string): Promise<Cart> {
+    const cart = await this.cartRepository.findOne({
+      where: { customer_id: { userId }, status: 'active' },
+    });
+    if (!cart) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return cart;
   }
 }

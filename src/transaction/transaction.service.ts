@@ -50,7 +50,7 @@ export class TransactionService {
       await order.save();
     }
   }
-  async processPayment(orderId: number, amount: number): Promise<void> {
+  async processPayment(orderId: number): Promise<void> {
     // Payment processing logic here (e.g., communicating with a payment gateway)
     // Let's assume that the payment is successful for now.
 
@@ -65,7 +65,7 @@ export class TransactionService {
       await this.orderService.updateOrderStatus(orderId, 'paid');
 
       // Trigger driver matching process
-      const order = await this.orderService.findOrderById(orderId); // You may need a method like findOrderById in OrderService
+      const order = await this.orderService.findOne(orderId); // You may need a method like findOrderById in OrderService
       await this.orderService.triggerDriverMatch(order);
 
       // Publish the payment confirmation message to the queue
@@ -86,5 +86,19 @@ export class TransactionService {
       where: { order_id: orderID },
     });
     return transaction;
+  }
+  async findById(id: number): Promise<Transaction> {
+    const transaction = await this.transactionRepository.findOne({
+      where: { id },
+    });
+    return transaction;
+  }
+  async findAll(): Promise<Transaction[]> {
+    const transactions = await this.transactionRepository.findAll();
+    return transactions;
+  }
+  async delete(id: number): Promise<boolean> {
+    const result = await this.transactionRepository.destroy({ where: { id } });
+    return result > 0;
   }
 }

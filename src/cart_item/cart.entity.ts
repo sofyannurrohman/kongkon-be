@@ -43,4 +43,6 @@ export class CartItem extends Model {
 
   @BelongsTo(() => Cart)
   cart: Cart;
+  @BelongsTo(() => Variant)
+  variant: Variant; // This should match your query and refer to the Variant model
 }

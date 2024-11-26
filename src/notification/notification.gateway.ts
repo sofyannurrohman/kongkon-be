@@ -64,9 +64,9 @@ export class NotificationGateway implements OnGatewayInit {
       console.log('User ID not provided in WebSocket connection');
     }
   }
-  handleDisconnect(socket: Socket) {
-    // Handle user disconnection if necessary
-    console.log('User disconnected');
+  handleDisconnect(client: Socket) {
+    const userId = client.handshake.query.userId;
+    console.log(`User ${userId} disconnected`);
   }
 
   // Method to join a user to a general notification room

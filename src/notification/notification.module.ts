@@ -14,12 +14,14 @@ import { RedisModule } from 'src/redis/redis.module';
 
 import { CacheModule } from '@nestjs/cache-manager';
 import { CartModule } from 'src/cart/cart.module';
+import { CartItemModule } from 'src/cart_item/cart.module';
 @Module({
   imports: [
     forwardRef(() => OrderModule),
     forwardRef(() => TransactionModule),
     forwardRef(() => UsersModule),
     forwardRef(() => CartModule),
+    forwardRef(() => CartItemModule),
     WalletModule,
     RabbitmqModule,
     HttpModule,

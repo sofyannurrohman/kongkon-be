@@ -29,6 +29,10 @@ export class UserInRolesController {
     return this.userInRoleService.findOne(id);
   }
 
+  @Get('users/:userId')
+  async findByUserId(@Param('userId') userId: string) {
+    return this.userInRoleService.isAdmin(userId);
+  }
   @Put(':id')
   async update(
     @Param('id') id: number,

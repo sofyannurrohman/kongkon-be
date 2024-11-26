@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserInRolesService } from 'src/user-in-roles/user-in-roles.service';
 import { RolesService } from 'src/roles/roles.service';
 import { CreateUserInRoleDto } from 'src/user-in-roles/dto/create-user-in-role.dto';
+import { CreatePartnerDto } from 'src/partner/dto/create_partner.dto';
 
 @Injectable()
 export class UsersService {
@@ -49,6 +50,37 @@ export class UsersService {
     });
     this.walletService.create(user.id);
     const role = await this.roleService.findByName('customer');
+    const request = new CreateUserInRoleDto();
+    request.user_id = user.id;
+    request.role_id = role.id;
+
+    this.userInRoleService.create(request);
+    return user;
+  }
+
+  async registerPartner(userData: CreatePartnerDto): Promise<User> {
+    const hashed_password = await bcrypt.hash(userData.password, 10);
+    const is_not_available = await this.userRepository.findOne({
+      where: { email: userData.email },
+    });
+    if (is_not_available) {
+      throw new HttpException(
+        'Email has been registered',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const user = await this.userRepository.create({
+      name: userData.name,
+      email: userData.email,
+      password_hash: hashed_password,
+      phone_number: userData.phone_number,
+      avatar_file_name: '',
+      role_id: 'driver',
+      license_number: userData.license_number,
+      is_available: false,
+    });
+    this.walletService.create(user.id);
+    const role = await this.roleService.findByName('driver');
     const request = new CreateUserInRoleDto();
     request.user_id = user.id;
     request.role_id = role.id;

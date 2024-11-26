@@ -48,7 +48,7 @@ export class Order extends Model {
   order_type: string;
 
   @Column
-  work_date: string;
+  work_date: Date;
 
   @Column
   merchant_profit: number;

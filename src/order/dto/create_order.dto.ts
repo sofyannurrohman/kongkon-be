@@ -1,6 +1,12 @@
-import { IsNotEmpty, IsNumber, IsString, IsObject } from 'class-validator';
-import { Point } from 'geojson'; // GeoJSON type
-
+import {
+  IsNotEmpty,
+  IsString,
+  IsObject,
+  IsArray,
+  IsOptional,
+  IsDate,
+} from 'class-validator';
+import { Point } from 'geojson';
 export class CreateOrderDto {
   @IsString()
   @IsNotEmpty()
@@ -10,32 +16,25 @@ export class CreateOrderDto {
   @IsNotEmpty()
   merchant_id: string;
 
-  @IsString()
-  partner_id: string;
-
-  @IsString()
+  @IsObject()
   @IsNotEmpty()
-  status: string;
+  from_location: Point;
 
   @IsObject()
   @IsNotEmpty()
-  from_location: Point; // GeoJSON Point
-
-  @IsObject()
-  @IsNotEmpty()
-  to_location: Point; // GeoJSON Point
+  to_location: Point;
 
   @IsString()
   order_type: string;
 
-  @IsString()
-  work_date: string;
+  @IsOptional()
+  work_date?: Date;
 
-  @IsNumber()
-  merchant_profit: number;
-
-  @IsNumber()
-  partner_profit: number;
-  @IsNumber()
-  cart_id: number;
+  @IsArray()
+  items: Array<{
+    item_id: number;
+    quantity: number;
+    note?: string;
+    variant_id?: number;
+  }>;
 }

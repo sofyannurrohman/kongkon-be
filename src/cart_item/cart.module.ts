@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CartItemService } from './cart.service';
 import { CartItemController } from './cart.controller';
 import { cartItemsProviders } from './cart.provider';
@@ -12,9 +12,13 @@ import { VariantService } from 'src/variant/variant.service';
 import { itemsProviders } from 'src/item/item.provider';
 import { DatabaseModule } from 'src/db/database.module';
 import { variantsProviders } from 'src/variant/variant.provider';
-
 @Module({
-  imports: [CartModule, ItemModule, VariantModule, DatabaseModule],
+  imports: [
+    CartModule,
+    ItemModule,
+    VariantModule,
+    DatabaseModule,
+  ],
   providers: [
     CartItemService,
     ...cartItemsProviders,
@@ -26,5 +30,6 @@ import { variantsProviders } from 'src/variant/variant.provider';
     ...variantsProviders,
   ],
   controllers: [CartItemController],
+  exports: [CartItemService],
 })
 export class CartItemModule {}

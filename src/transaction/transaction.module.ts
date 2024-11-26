@@ -11,11 +11,10 @@ import { UsersModule } from 'src/user/user.module';
 import { UsersService } from 'src/user/user.service';
 import { usersProviders } from 'src/user/user.provider';
 import { WalletModule } from 'src/wallet/wallet.module';
-import { UserInRolesService } from 'src/user-in-roles/user-in-roles.service';
-import { RolesService } from 'src/roles/roles.service';
 import { UserInRolesModule } from 'src/user-in-roles/user-in-roles.module';
 import { RolesModule } from 'src/roles/roles.module';
 import { CartModule } from 'src/cart/cart.module';
+import { CartItemModule } from 'src/cart_item/cart.module';
 
 @Module({
   imports: [
@@ -27,6 +26,7 @@ import { CartModule } from 'src/cart/cart.module';
     forwardRef(() => UserInRolesModule), // Add forwardRef here
     forwardRef(() => RolesModule),
     forwardRef(() => CartModule),
+    CartItemModule,
     WalletModule,
   ],
   controllers: [TransactionController],

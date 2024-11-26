@@ -54,6 +54,16 @@ export class PartnerController {
     return driverIds.map((id) => ({ id })); // Map to DTO
   }
 
+  @Post('send-notification')
+  async sendNotification(@Body() body: { customerId: string; message: any }) {
+    const { customerId, message } = body;
+    const result = await this.partnerService.testNotification(
+      customerId,
+      message,
+    );
+    return { success: true, message: result };
+  }
+
   @Post(':id/rematch')
   async rematchDriver(@Param('id') orderId: number) {
     return this.partnerService.handleRematch(orderId);

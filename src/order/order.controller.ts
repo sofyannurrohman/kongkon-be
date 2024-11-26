@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -62,13 +63,19 @@ export class OrderController {
   @Post('estimate-price')
   async calculateDistance(
     @Body() distanceDto: DistanceDto,
-  ): Promise<WebResponse<number>> {
+  ): Promise<WebResponse<any>> {
+    const distance = await this.orderService.calculateDistance(
+      distanceDto.from_lat,
+      distanceDto.from_lng,
+      distanceDto.to_lat,
+      distanceDto.to_lng,
+    );
     const total_cost = await this.orderService.estimateCost(distanceDto);
     return {
       status: 'success',
       code: 200,
       message: 'Success estimate distance price',
-      data: total_cost,
+      data: { distance: distance, cost: total_cost },
     };
   }
 
@@ -126,5 +133,37 @@ export class OrderController {
       message: 'Successfully get order by id',
       data: result,
     };
+  }
+  @Get()
+  async getAll(): Promise<WebResponse<Order[]>> {
+    const result = await this.orderService.findAll();
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get all order',
+      data: result,
+    };
+  }
+  @Get('users/:userId')
+  async findByUserID(
+    @Param('userId') id: string,
+  ): Promise<WebResponse<Order[]>> {
+    const result = await this.orderService.findByUserId(id);
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get order by user id',
+      data: result,
+    };
+  }
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<WebResponse<any>> {
+    const order = await this.orderService.findOrderById(Number(id));
+    const deleted = await this.orderService.delete(Number(id));
+    if (!deleted) {
+      throw new HttpException('User  not found', HttpStatus.NOT_FOUND);
+    }
+
+    return { message: `Order ${order.id} successfully deleted` };
   }
 }

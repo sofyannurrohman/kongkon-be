@@ -19,6 +19,7 @@ import { UsersService } from './user.service';
 import { UpdateUserRequest, CreateCustomerDto } from './dto/user.dto';
 import { User } from './user.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CreatePartnerDto } from 'src/partner/dto/create_partner.dto';
 
 @Controller('/users')
 export class UsersController {
@@ -34,6 +35,19 @@ export class UsersController {
       status: 'success',
       code: 200,
       message: 'Successfully created new user',
+      data: result,
+    };
+  }
+  @Post('drivers')
+  @HttpCode(200)
+  async registerDriver(
+    @Body() request: CreatePartnerDto,
+  ): Promise<WebResponse<UserResponse>> {
+    const result = await this.userService.registerPartner(request);
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully created new partner',
       data: result,
     };
   }

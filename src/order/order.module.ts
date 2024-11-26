@@ -13,6 +13,7 @@ import { transactionsProviders } from 'src/transaction/transaction.provider';
 import { UsersModule } from 'src/user/user.module';
 import { WalletModule } from 'src/wallet/wallet.module';
 import { CartModule } from 'src/cart/cart.module';
+import { CartItemModule } from 'src/cart_item/cart.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CartModule } from 'src/cart/cart.module';
     ConfigModule.forRoot(),
     WalletModule,
     CartModule,
+    CartItemModule,
     forwardRef(() => UsersModule),
     forwardRef(() => TransactionModule),
   ],

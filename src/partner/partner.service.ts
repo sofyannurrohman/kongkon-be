@@ -130,6 +130,10 @@ export class PartnerService {
       const matchedDrivers = await this.findNearbyDrivers(merchantId, 2000);
       if (!matchedDrivers || matchedDrivers.length === 0) {
         console.log(`No nearby drivers found for order ID: ${orderId}`);
+        this.notificationGateway.notifyCustomer(
+          order.customer_id,
+          'Tidak ada driver di sekitar merchant, Silahkan melakukan pencarian kembali',
+        );
         return;
       }
 
@@ -164,6 +168,10 @@ export class PartnerService {
               orderMatchedPayload,
             );
 
+            this.notificationGateway.notifyCustomer(
+              order.customer_id,
+              'Pesanan telah di terima oleh driver',
+            );
             console.log(
               `Order ${orderId} matched successfully with driver ${driverId}`,
             );
@@ -235,6 +243,13 @@ export class PartnerService {
 
     // Use a notification system to inform the customer (Socket.IO, Push Notification, etc.)
     await this.notificationGateway.notifyCustomer(customerId, payload);
+  }
+  async testNotification(customerId: string, message: any): Promise<any> {
+    const result = await this.notificationGateway.notifyCustomer(
+      customerId,
+      message,
+    );
+    return result;
   }
   private async notifyAndMatchDriver(
     matchedDrivers: string[],

@@ -18,6 +18,9 @@ import { Transaction } from 'src/transaction/transaction.entity';
 import { UsersService } from 'src/user/user.service';
 import { WalletService } from 'src/wallet/wallet.service';
 import { CartService } from 'src/cart/cart.service';
+import { CartItemService } from 'src/cart_item/cart.service';
+import { CreateCartItemDto } from 'src/cart_item/dto/create_item_cart.dto';
+import { Sequelize } from 'sequelize-typescript';
 
 @Injectable()
 export class OrderService {
@@ -29,6 +32,7 @@ export class OrderService {
     private transactionModel: typeof Transaction,
     private userService: UsersService,
     private cartService: CartService,
+    private cartItemService: CartItemService,
     private walletService: WalletService,
     private readonly rabbitMQService: RabbitMQProducerService,
     private httpService: HttpService, // Inject HttpService
@@ -44,19 +48,35 @@ export class OrderService {
   }
 
   async createOrder(createOrderDto: CreateOrderDto) {
-    const partnerProfit = await this.calculateDistance(
-      createOrderDto.from_location.coordinates[1],
-      createOrderDto.from_location.coordinates[0],
-      createOrderDto.to_location.coordinates[1],
-      createOrderDto.to_location.coordinates[0],
+    const cartItem = new CreateCartItemDto();
+    cartItem.items = createOrderDto.items;
+
+    const userCartItem = await this.cartItemService.addToCartItem(
+      createOrderDto.customer_id,
+      cartItem,
     );
+    const data = new DistanceDto();
+    data.from_lat = createOrderDto.from_location.coordinates[1];
+    data.from_lng = createOrderDto.from_location.coordinates[0];
+    data.to_lat = createOrderDto.to_location.coordinates[1];
+    data.to_lng = createOrderDto.to_location.coordinates[0];
+
+    const partnerProfit = await this.estimateCost(data);
     const merchantProfit = 5000;
-    const userCart = await this.cartService.findByID(createOrderDto.cart_id);
+    let date = createOrderDto.work_date;
+    if (createOrderDto.work_date == null) {
+      date = new Date();
+    }
     const order = await this.orderRepository.create({
+      work_date: date,
       ...createOrderDto,
-      total_amount: userCart.total_amount + partnerProfit,
+      partner_id: 'pending',
+      status: 'pending',
+      total_amount:
+        userCartItem.cart.total_amount + partnerProfit + merchantProfit,
       partner_profit: partnerProfit,
       merchant_profit: merchantProfit,
+      cart_id: userCartItem.cart.id,
     });
     const user = await this.userService.findOne(order.customer_id);
     const transactionParams = {
@@ -208,8 +228,37 @@ export class OrderService {
     await this.rabbitMQService.publishTransactionPaidEvent(eventPayload);
   }
 
-  async findOrderById(orderId: number): Promise<Order> {
-    return this.orderRepository.findByPk(orderId);
+  async findOrderById(orderId: number): Promise<any> {
+    const order = await this.orderRepository.findByPk(orderId);
+    const cart = await this.cartService.findByID(order.cart_id);
+    return {
+      order: order,
+      cart: cart,
+    };
+  }
+  async findOne(orderId: number): Promise<any> {
+    const order = await this.orderRepository.findByPk(orderId);
+    return order;
+  }
+  async findAll(): Promise<any> {
+    const orders = await this.orderRepository.findAll();
+    return orders;
+  }
+  async findByUserId(userId: string): Promise<Order[]> {
+    return this.orderRepository.findAll({
+      attributes: {
+        exclude: [
+          'from_location',
+          'to_location',
+          'merchant_profit',
+          'partner_profit',
+        ],
+      },
+      where: {
+        customer_id: userId,
+      },
+      order: [['createdAt', 'DESC']], // Order by 'createdAt' in descending order (latest first)
+    });
   }
   async updateOrder(
     id: number,
@@ -374,4 +423,8 @@ export class OrderService {
   //     throw error;
   //   }
   // }
+  async delete(id: number): Promise<boolean> {
+    const result = await this.orderRepository.destroy({ where: { id } });
+    return result > 0;
+  }
 }

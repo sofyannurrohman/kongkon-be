@@ -60,4 +60,3 @@ export class Item extends Model<Item> {
   })
   variants: Variant[];
 }
->

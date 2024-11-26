@@ -1,8 +1,7 @@
+// dto/update-cart-item.dto.ts
 export class UpdateCartItemDto {
-  items?: {
-    item_id: string;
-    item_qty: number;
-    variant_id?: number;
-    note?: string;
-  }[];
+  item_id: string; // ID of the item to update
+  item_qty: number; // New quantity
+  variant_id?: number; // Optional variant
+  note?: string; // Optional note
 }
