@@ -21,6 +21,8 @@ import { CartModule } from './cart/cart.module';
 import { RolesModule } from './roles/roles.module';
 import { UserInRolesModule } from './user-in-roles/user-in-roles.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import * as path from 'path';
 @Module({
   imports: [
     ClientsModule.register([
@@ -28,14 +30,18 @@ import { CacheModule } from '@nestjs/cache-manager';
         name: 'ORDER_SERVICE',
         transport: Transport.RMQ,
         options: {
-          urls: ['amqp://localhost:5672'], // Your RabbitMQ URL
-          queue: 'order_queue', // Define the order queue
+          urls: ['amqp://localhost:5672'],
+          queue: 'order_queue',
           queueOptions: {
             durable: true,
           },
         },
       },
     ]),
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads', // URL prefix to access files
+    }),
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     WalletModule,

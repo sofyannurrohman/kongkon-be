@@ -72,9 +72,7 @@ export class PartnerController {
   @Post('update-status')
   async updateDriverStatus(@Body() driverStatusDto: DriverStatusDto) {
     // Update order status
-    const order = await this.orderService.findOrderById(
-      driverStatusDto.orderId,
-    );
+    const order = await this.orderService.findOne(driverStatusDto.orderId);
     if (!order) {
       return { message: 'Order not found' };
     }

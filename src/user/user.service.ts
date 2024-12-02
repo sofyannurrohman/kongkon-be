@@ -16,6 +16,8 @@ import { UserInRolesService } from 'src/user-in-roles/user-in-roles.service';
 import { RolesService } from 'src/roles/roles.service';
 import { CreateUserInRoleDto } from 'src/user-in-roles/dto/create-user-in-role.dto';
 import { CreatePartnerDto } from 'src/partner/dto/create_partner.dto';
+import { UserInRoles } from 'src/user-in-roles/user-in-role.entity';
+import { Role } from 'src/roles/roles.entity';
 
 @Injectable()
 export class UsersService {
@@ -135,5 +137,39 @@ export class UsersService {
     } catch (error) {
       throw new BadRequestException('Error uploading avatar');
     }
+  }
+  async getUsersWithDriverRole() {
+    return this.userRepository.findAll({
+      include: [
+        {
+          model: UserInRoles,
+          required: true,
+          include: [
+            {
+              model: Role,
+              required: true,
+              where: { name: 'driver' },
+            },
+          ],
+        },
+      ],
+    });
+  }
+  async getUsersWithCustomerRole() {
+    return this.userRepository.findAll({
+      include: [
+        {
+          model: UserInRoles,
+          required: true,
+          include: [
+            {
+              model: Role,
+              required: true,
+              where: { name: 'customer' },
+            },
+          ],
+        },
+      ],
+    });
   }
 }

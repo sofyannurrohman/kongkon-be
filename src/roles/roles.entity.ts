@@ -6,7 +6,9 @@ import {
   DataType,
   Default,
   PrimaryKey,
+  HasMany,
 } from 'sequelize-typescript';
+import { UserInRoles } from 'src/user-in-roles/user-in-role.entity';
 
 @Table({
   tableName: 'roles', // replace with the table name of your choice
@@ -32,4 +34,6 @@ export class Role extends Model {
     allowNull: true,
   })
   description: string;
+  @HasMany(() => UserInRoles)
+  userInRoles: UserInRoles[];
 }

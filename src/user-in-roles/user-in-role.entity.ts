@@ -6,6 +6,7 @@ import {
   ForeignKey,
   PrimaryKey,
   AutoIncrement,
+  BelongsTo,
 } from 'sequelize-typescript';
 import { User } from '../user/user.entity'; // Assuming you have a User entity
 import { Role } from '../roles/roles.entity'; // Assuming you have a Role entity
@@ -28,7 +29,6 @@ export class UserInRoles extends Model<UserInRoles> {
   @Column({
     type: DataType.UUID,
     allowNull: false,
-    defaultValue: UUIDV4,
   })
   user_id: string;
 
@@ -36,7 +36,12 @@ export class UserInRoles extends Model<UserInRoles> {
   @Column({
     type: DataType.UUID,
     allowNull: false,
-    defaultValue: UUIDV4,
   })
   role_id: string;
+
+  @BelongsTo(() => User)
+  user: User;
+
+  @BelongsTo(() => Role)
+  role: Role;
 }

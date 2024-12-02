@@ -74,6 +74,27 @@ export class UsersController {
     };
   }
 
+  @Get('role/drivers')
+  async getDrivers(): Promise<WebResponse<User[]>> {
+    const result = await this.userService.getUsersWithDriverRole();
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get all drivers',
+      data: result,
+    };
+  }
+  @Get('role/customers')
+  async getCustomer(): Promise<WebResponse<User[]>> {
+    const result = await this.userService.getUsersWithCustomerRole();
+    return {
+      status: 'success',
+      code: 200,
+      message: 'Successfully get all customers',
+      data: result,
+    };
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<{ message: string }> {
     const user = await this.userService.findOne(id);

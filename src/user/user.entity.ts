@@ -7,7 +7,9 @@ import {
   PrimaryKey,
   DataType,
   HasOne,
+  HasMany,
 } from 'sequelize-typescript';
+import { UserInRoles } from 'src/user-in-roles/user-in-role.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
 
 @Table({
@@ -51,4 +53,7 @@ export class User extends Model {
     hooks: true, // This ensures Sequelize triggers cascading hooks
   })
   wallet: Wallet[];
+
+  @HasMany(() => UserInRoles)
+  userInRoles: UserInRoles[];
 }
